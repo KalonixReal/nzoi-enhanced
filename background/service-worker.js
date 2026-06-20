@@ -187,27 +187,39 @@ async function callAI(provider, apiKey, model, prompt, options = {}) {
     };
     if (systemText) body.systemInstruction = { parts: [{ text: systemText }] };
     if (options.responseSchema) {
-      body.generationConfig.responseFormat = {
-        text: {
-          mimeType: 'application/json',
-          schema: options.responseSchema,
-        },
-      };
+      body.generationConfig.responseMimeType = 'application/json';
+      body.generationConfig.responseSchema = options.responseSchema;
     } else if (options.responseFormat) {
       body.generationConfig.responseMimeType = 'application/json';
     }
     if (options.thinkingConfig) body.generationConfig.thinkingConfig = options.thinkingConfig;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-    const res = await fetch(url, {
+    const sendGoogle = async payload => fetch(url, {
       method: 'POST',
       headers: {
         'x-goog-api-key': apiKey,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     });
-    const text = await res.text();
+    let res = await sendGoogle(body);
+    let text = await res.text();
+    if (!res.ok && res.status === 400 && options.responseSchema) {
+      const schemaRejected = /response_?schema|generationConfig\.responseSchema|responseSchema/i.test(text);
+      if (schemaRejected) {
+        const bodyWithoutSchema = {
+          ...body,
+          generationConfig: {
+            ...body.generationConfig,
+            responseMimeType: 'application/json',
+          },
+        };
+        delete bodyWithoutSchema.generationConfig.responseSchema;
+        res = await sendGoogle(bodyWithoutSchema);
+        text = await res.text();
+      }
+    }
     if (!res.ok) {
       const err = new Error('Google/' + model + ' ' + res.status + ': ' + text.slice(0, 300));
       err.status = res.status;
