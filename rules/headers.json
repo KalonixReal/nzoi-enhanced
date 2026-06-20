@@ -1,0 +1,66 @@
+[
+  {
+    "id": 1,
+    "priority": 100,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "content-security-policy",             "operation": "remove" },
+        { "header": "content-security-policy-report-only", "operation": "remove" },
+        { "header": "x-frame-options",                     "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||train.nzoi.org.nz/",
+      "resourceTypes": ["main_frame", "sub_frame", "script", "xmlhttprequest", "other"]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 99,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "content-security-policy",
+          "operation": "set",
+          "value": "default-src * blob: data: 'unsafe-inline' 'unsafe-eval'; worker-src * blob:;" },
+        { "header": "content-security-policy-report-only", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "*train.nzoi.org.nz*",
+      "resourceTypes": ["main_frame", "sub_frame"]
+    }
+  },
+  {
+    "id": 3,
+    "priority": 80,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "Cross-Origin-Opener-Policy",   "operation": "set", "value": "same-origin" },
+        { "header": "Cross-Origin-Embedder-Policy", "operation": "set", "value": "credentialless" },
+        { "header": "Cross-Origin-Resource-Policy", "operation": "set", "value": "cross-origin" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||train.nzoi.org.nz/",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 4,
+    "priority": 80,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "Cross-Origin-Resource-Policy", "operation": "set", "value": "cross-origin" },
+        { "header": "Access-Control-Allow-Origin",  "operation": "set", "value": "*" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||clangd-in-browser-fork.pages.dev/",
+      "resourceTypes": ["sub_frame", "xmlhttprequest", "other"]
+    }
+  }
+]
