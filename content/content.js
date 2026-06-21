@@ -472,6 +472,19 @@ async function initProblemPage() {
     return [...new Set([normalRelative, problemFile, problemFiles])];
   };
 
+  const resolveStatementAssetUrl = raw => {
+    const src = String(raw || '').trim().replace(/^['"]|['"]$/g, '');
+    if (!src) return '';
+    try {
+      if (/^(?:https?:|data:|blob:|chrome-extension:)/i.test(src)) return src;
+      if (src.startsWith('/')) return new URL(src, location.origin).href;
+      const problemBase = new URL(location.pathname.endsWith('/') ? location.pathname : location.pathname + '/', location.origin);
+      return new URL(src, problemBase).href;
+    } catch {
+      return '';
+    }
+  };
+
   const fixStatementImagePlaceholders = (root = document) => {
     const selector = '.problem-description,.problem-statement,#main-container';
     const isScopedElement = root.nodeType === Node.ELEMENT_NODE && (root.matches(selector) || root.closest(selector));
@@ -525,6 +538,108 @@ async function initProblemPage() {
         node.parentNode.replaceChild(frag, node);
       });
     });
+  };
+
+  const embeddedPdfUrls = new Set();
+  const pendingPdfUrls = new Set();
+  let pdfEmbedTimer = null;
+
+  const findStatementPdfLinks = (root = document) => {
+    const selector = '.problem-description,.problem-statement,#main-container';
+    const isScopedElement = root.nodeType === Node.ELEMENT_NODE && (root.matches(selector) || root.closest(selector));
+    const scopes = isScopedElement
+      ? [root]
+      : [...(root.querySelectorAll?.(selector) || [])];
+    const links = [];
+    const add = href => {
+      const url = resolveStatementAssetUrl(href);
+      if (/\.pdf(?:[?#]|$)/i.test(url) && !links.includes(url)) links.push(url);
+    };
+    scopes.forEach(scope => {
+      if (scope.closest?.('.nzoi-pdf-embeds')) return;
+      scope.querySelectorAll?.('a[href], iframe[src], embed[src], object[data]')?.forEach(el => {
+        if (el.closest('.nzoi-pdf-embeds')) return;
+        add(el.getAttribute('href') || el.getAttribute('src') || el.getAttribute('data'));
+      });
+      const text = scope.innerText || '';
+      const markdownPdfRe = /(?:!?\[[^\]\n]*\]\(|href=["']?)([^)"'\s<>]+\.pdf(?:[?#][^)"'\s<>]*)?)/gi;
+      let match;
+      while ((match = markdownPdfRe.exec(text))) add(match[1]);
+      const barePdfRe = /(?:^|[\s("'=])((?:https?:\/\/|\.{0,2}\/|\/)?[A-Za-z0-9._~:/?#@!$&*+,;=%-]+\.pdf(?:[?#][A-Za-z0-9._~:/?#@!$&*+,;=%-]*)?)/gi;
+      while ((match = barePdfRe.exec(text))) add(match[1]);
+    });
+    return links.slice(0, 4);
+  };
+
+  const getPdfFrameSrc = async url => {
+    try {
+      if (new URL(url, location.href).origin !== location.origin) return url;
+      const res = await fetch(url, { credentials: 'include', cache: 'force-cache' });
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      return URL.createObjectURL(blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' }));
+    } catch {
+      return null;
+    }
+  };
+
+  const appendPdfEmbed = (url, frameSrc) => {
+    const statement = document.querySelector('.problem-description,.problem-statement');
+    const container = document.getElementById('main-container');
+    if ((!statement && !container) || embeddedPdfUrls.has(url)) return;
+    let holder = document.getElementById('nzoi-pdf-embeds');
+    if (!holder) {
+      holder = document.createElement('div');
+      holder.id = 'nzoi-pdf-embeds';
+      holder.className = 'nzoi-pdf-embeds';
+      if (statement?.parentNode) statement.parentNode.insertBefore(holder, statement);
+      else container.appendChild(holder);
+    }
+    const name = (() => {
+      try { return decodeURIComponent(new URL(url, location.href).pathname.split('/').pop() || 'PDF attachment'); }
+      catch { return 'PDF attachment'; }
+    })();
+    const box = document.createElement('section');
+    box.className = 'nzoi-pdf-embed';
+    box.dataset.pdfUrl = url;
+    const head = document.createElement('div');
+    head.className = 'nzoi-pdf-head';
+    const title = document.createElement('span');
+    title.className = 'nzoi-pdf-title';
+    title.textContent = `PDF: ${name}`;
+    const open = document.createElement('a');
+    open.className = 'nzoi-pdf-open';
+    open.href = url;
+    open.target = '_blank';
+    open.rel = 'noopener noreferrer';
+    open.textContent = 'Open';
+    const frame = document.createElement('iframe');
+    frame.className = 'nzoi-pdf-frame';
+    frame.src = frameSrc;
+    frame.title = name;
+    frame.loading = 'lazy';
+    head.appendChild(title);
+    head.appendChild(open);
+    box.appendChild(head);
+    box.appendChild(frame);
+    holder.appendChild(box);
+    embeddedPdfUrls.add(url);
+  };
+
+  const scheduleStatementPdfEmbeds = (root = document) => {
+    if (pdfEmbedTimer) clearTimeout(pdfEmbedTimer);
+    pdfEmbedTimer = setTimeout(async () => {
+      pdfEmbedTimer = null;
+      const urls = findStatementPdfLinks(root);
+      for (const url of urls) {
+        if (embeddedPdfUrls.has(url) || pendingPdfUrls.has(url)) continue;
+        pendingPdfUrls.add(url);
+        const frameSrc = await getPdfFrameSrc(url);
+        pendingPdfUrls.delete(url);
+        if (!frameSrc) continue;
+        appendPdfEmbed(url, frameSrc);
+      }
+    }, 200);
   };
 
   setTimeout(() => {
@@ -674,6 +789,12 @@ ul.nav-theme a{color:var(--fg2)!important}
 blockquote{border-left:3px solid var(--bd)!important;color:var(--fgm)!important;padding-left:12px!important;margin:8px 0!important}
 img{max-width:100%!important}
 .nzoi-statement-img{display:block;max-width:100%!important;height:auto!important;margin:12px auto!important;border-radius:6px}
+.nzoi-pdf-embeds{margin:16px 0}
+.nzoi-pdf-embed{border:1px solid var(--bd);border-radius:6px;overflow:hidden;background:var(--bg1);margin:14px 0}
+.nzoi-pdf-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;background:var(--bg2);border-bottom:1px solid var(--bd);font-size:12px}
+.nzoi-pdf-title{font-weight:700;color:var(--fg);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nzoi-pdf-open{color:var(--ac)!important;font-weight:700;flex-shrink:0}
+.nzoi-pdf-frame{display:block;width:100%;height:min(72vh,760px);min-height:420px;border:0;background:#fff}
 .math,.MathJax{color:var(--fg)!important}
 
 /* 閳光偓閳光偓 Editor sidebar 閳光偓閳光偓 */
@@ -762,11 +883,17 @@ img{max-width:100%!important}
   const titleBox = document.getElementById('main-page-title-box');
   if (titleBox) { orig.insertBefore(titleBox, orig.firstChild); }
   fixStatementImagePlaceholders(orig);
+  scheduleStatementPdfEmbeds(orig);
   const statementObserver = new MutationObserver(muts => {
     muts.forEach(m => {
       m.addedNodes.forEach(n => {
-        if (n.nodeType === Node.ELEMENT_NODE) fixStatementImagePlaceholders(n);
-        else if (n.nodeType === Node.TEXT_NODE) fixStatementImagePlaceholders(n.parentElement || orig);
+        if (n.nodeType === Node.ELEMENT_NODE) {
+          fixStatementImagePlaceholders(n);
+          scheduleStatementPdfEmbeds(n);
+        } else if (n.nodeType === Node.TEXT_NODE) {
+          fixStatementImagePlaceholders(n.parentElement || orig);
+          scheduleStatementPdfEmbeds(n.parentElement || orig);
+        }
       });
     });
   });

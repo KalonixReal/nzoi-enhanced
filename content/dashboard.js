@@ -60,7 +60,7 @@ const CLASSIFICATION_UI_FLUSH_MS = 350;
 const CLASSIFICATION_SYNC_DEBOUNCE_MS = 1200;
 const LATE_PROBLEM_RESCAN_MS = 5000;
 const TIER2_MIN_BATCH_SIZE = 15;
-const TIER2_BATCH_SIZE = 20;
+const TIER2_BATCH_SIZE = 15;
 const PDF_ATTACHMENT_MAX_FILES = 4;
 const PDF_ATTACHMENT_MAX_BYTES = 8_000_000;
 const PDF_ATTACHMENT_TEXT_MAX_CHARS = 80_000;
@@ -69,7 +69,8 @@ const PDF_ATTACHMENT_CACHE_MS = 7 * 24 * 60 * 60 * 1000;
 const PDF_ATTACHMENT_FETCH_TIMEOUT_MS = 18_000;
 
 const GOOGLE_LIMITS = {
-    requestsPerMinute: 30,
+    requestsPerMinute: 5,
+    requestsPerDay: 20,
     contextWindowTokens: 1_048_576,
 };
 
@@ -367,6 +368,8 @@ function initApiStates() {
             consecutive429: 0,
             requestTimes: [],
             tokenTimes: [],
+            dayKey: new Date().toISOString().slice(0, 10),
+            dailyRequests: 0,
             currentBackoffMs: 5000,
             limitLogTimes: {},
         };
@@ -731,11 +734,20 @@ const apiMgr = {
                 consecutive429: 0,
                 requestTimes: [],
                 tokenTimes: [],
+                dayKey: new Date().toISOString().slice(0, 10),
+                dailyRequests: 0,
                 currentBackoffMs: 5000,
                 limitLogTimes: {},
             };
         }
         return state.apiStates[p.name];
+    },
+    rollDailyWindow(ps) {
+        const dayKey = new Date().toISOString().slice(0, 10);
+        if (ps.dayKey !== dayKey) {
+            ps.dayKey = dayKey;
+            ps.dailyRequests = 0;
+        }
     },
     logLimited(p, key, message, intervalMs=10_000) {
         const ps = this.ensureState(p);
@@ -750,6 +762,7 @@ const apiMgr = {
         const prv = this.candidates(kind, sp);
         for (const p of prv) {
             const ps = this.ensureState(p);
+            this.rollDailyWindow(ps);
             if (ps.pauseUntil > now) {
                 this.logLimited(p, 'paused', `${p.name} paused for ${Math.ceil((ps.pauseUntil-now)/1000)}s`, 30_000);
                 continue;
@@ -763,6 +776,10 @@ const apiMgr = {
                 this.logLimited(p, 'rpm', `${p.name} rate limited (${rr.length}/${p.rpmLimit} rpm)`);
                 continue;
             }
+            if (p.rpdLimit && ps.dailyRequests >= p.rpdLimit) {
+                this.logLimited(p, 'rpd', `${p.name} daily request limit reached (${ps.dailyRequests}/${p.rpdLimit})`, 300_000);
+                continue;
+            }
             if (p.tpmLimit) {
                 const used = ps.tokenTimes.reduce((sum, x) => sum + x.tokens, 0);
                 if (used + tokenCost > p.tpmLimit) {
@@ -774,15 +791,28 @@ const apiMgr = {
         }
         return null;
     },
+    dailyExhausted(kind, sp=null) {
+        const candidates = this.candidates(kind, sp);
+        if (!candidates.length) return false;
+        return candidates.every(p => {
+            if (!p.rpdLimit) return false;
+            const ps = this.ensureState(p);
+            this.rollDailyWindow(ps);
+            return ps.dailyRequests >= p.rpdLimit;
+        });
+    },
     reserve(p, tokenCost=0) {
         const now = Date.now();
         const ps = this.ensureState(p);
+        this.rollDailyWindow(ps);
         ps.requestTimes = ps.requestTimes.filter(t=>t>now-60_000);
         ps.tokenTimes = (ps.tokenTimes || []).filter(x=>x.t>now-60_000);
         ps.requestTimes.push(now);
+        if (p.rpdLimit) ps.dailyRequests++;
         if (tokenCost > 0) ps.tokenTimes.push({ t: now, tokens: tokenCost });
         ps.lastCall = now;
-        LOG(`${p.name}: reserved ${ps.requestTimes.length}/${p.rpmLimit || 'unlimited'} rpm`);
+        const dayPart = p.rpdLimit ? `, ${ps.dailyRequests}/${p.rpdLimit} day` : '';
+        LOG(`${p.name}: reserved ${ps.requestTimes.length}/${p.rpmLimit || 'unlimited'} rpm${dayPart}`);
     },
     async waitFor(kind, sp=null, tokenCost=0) {
         let waited = 0;
@@ -791,6 +821,9 @@ const apiMgr = {
             if (p) {
                 this.reserve(p, tokenCost);
                 return p;
+            }
+            if (this.dailyExhausted(kind, sp)) {
+                throw new Error((kind || 'AI') + ' daily request limit reached');
             }
             if (waited === 0) LOG('All providers busy, waiting…');
             await sleep(250); waited += 250;
@@ -1455,7 +1488,6 @@ const classifier = {
                 maxTokens,
                 temperature: 0.2,
                 responseFormat: ROUTER_JSON_OBJECT,
-                responseSchema: TIER2_BATCH_RESPONSE_SCHEMA,
                 thinkingConfig: { thinkingLevel: 'HIGH' },
             });
             if (!tier2.validJson || !Array.isArray(tier2.parsed?.results)) {
@@ -3070,6 +3102,7 @@ async function run() {
             model:googleModel,
             fallbackModel:googleFallbackModel,
             rpmLimit:GOOGLE_LIMITS.requestsPerMinute,
+            rpdLimit:GOOGLE_LIMITS.requestsPerDay,
             contextWindowTokens:GOOGLE_LIMITS.contextWindowTokens,
         });
     });
