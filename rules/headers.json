@@ -1,0 +1,66 @@
+[
+  {
+    "id": 1,
+    "priority": 100,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "content-security-policy",             "operation": "remove" },
+        { "header": "content-security-policy-report-only", "operation": "remove" },
+        { "header": "x-frame-options",                     "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||train.nzoi.org.nz/",
+      "resourceTypes": ["main_frame", "sub_frame", "script", "xmlhttprequest", "other"]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 99,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "content-security-policy",
+          "operation": "set",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https: chrome-extension:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; worker-src 'self' blob: chrome-extension:; connect-src 'self' https: chrome-extension:; frame-src 'self' chrome-extension: https://clangd-in-browser-fork.pages.dev; object-src 'none'; base-uri 'self'; form-action 'self'" },
+        { "header": "content-security-policy-report-only", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "*train.nzoi.org.nz*",
+      "resourceTypes": ["main_frame", "sub_frame"]
+    }
+  },
+  {
+    "id": 3,
+    "priority": 80,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "Cross-Origin-Opener-Policy",   "operation": "set", "value": "same-origin" },
+        { "header": "Cross-Origin-Embedder-Policy", "operation": "set", "value": "credentialless" },
+        { "header": "Cross-Origin-Resource-Policy", "operation": "set", "value": "cross-origin" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||train.nzoi.org.nz/",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 4,
+    "priority": 80,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "Cross-Origin-Resource-Policy", "operation": "set", "value": "cross-origin" },
+        { "header": "Access-Control-Allow-Origin",  "operation": "set", "value": "*" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||clangd-in-browser-fork.pages.dev/",
+      "resourceTypes": ["sub_frame", "xmlhttprequest", "other"]
+    }
+  }
+]

@@ -1,0 +1,70 @@
+/* NZOI Enhanced — immediate dark mode, injected before page JS runs */
+:root {
+  --bg0: #0d1117;
+  --bg1: #161b22;
+  --bg2: #21262d;
+  --bg3: #30363d;
+  --fg:  #e6edf3;
+  --fgm: #8b949e;
+  --ac:  #58a6ff;
+  --bd:  #30363d;
+}
+
+:root[data-theme="light"] {
+  --bg0: #ffffff;
+  --bg1: #f6f8fa;
+  --bg2: #eaeef2;
+  --bg3: #d0d7de;
+  --fg:  #1f2328;
+  --fgm: #57606a;
+  --ac:  #0969da;
+  --bd:  #d0d7de;
+}
+
+html, body {
+  background: var(--bg0) !important;
+  color: var(--fg) !important;
+}
+
+/* Prevent white flash in main container before JS layout */
+#main-container, .ui.container, .ui.segment {
+  background: var(--bg0) !important;
+  color: var(--fg) !important;
+}
+
+/* Nav immediate dark */
+#side, #side-container, .navbar, nav, #main-menu, .ui.menu {
+  background: var(--bg1) !important;
+  border-color: var(--bd) !important;
+}
+
+.navbar *, nav *, #main-menu *, .ui.menu *, #side, #side * {
+  color: var(--fg) !important;
+}
+
+#side-minify, ul.nav-theme li, ul.nav-theme ul {
+  background: var(--bg1) !important;
+  border-color: var(--bd) !important;
+}
+
+ul.nav-theme > li, ul.nav-theme ul li {
+  border-color: var(--bd) !important;
+}
+
+ul.nav-theme a {
+  color: var(--fg) !important;
+}
+
+ul.nav-theme li:hover, ul.nav-theme li.sfHover, ul.nav-theme a:hover, #side-minify:hover {
+  background: var(--bg2) !important;
+  color: var(--fg) !important;
+}
+
+/* Kill any white backgrounds broadly */
+.ui.card, .ui.cards > .card, .ui.grid, .ui.row {
+  background: transparent !important;
+}
+
+body > .ui.container > * {
+  background: transparent !important;
+}

@@ -1,0 +1,88 @@
+{
+  "manifest_version": 3,
+  "name": "NZOI Enhanced",
+  "version": "10.0",
+  "description": "NZOI Enhanced: Monaco editor, C++/Python/Java linting, Gist sync, and AI classification.",
+  "permissions": [
+    "storage",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://train.nzoi.org.nz/*",
+    "https://api.github.com/*",
+    "https://clangd-in-browser-fork.pages.dev/*",
+    "https://ce.judge0.com/*",
+    "https://emkc.org/*",
+    "https://api.mistral.ai/*",
+    "https://generativelanguage.googleapis.com/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+    "sandbox": "sandbox allow-scripts allow-forms allow-popups allow-modals; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; child-src 'self' blob:; worker-src 'self' blob:;"
+  },
+  "sandbox": {
+    "pages": ["libs/java-lint.html"]
+  },
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://train.nzoi.org.nz/*"],
+      "js": ["content/remove-csp.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": ["https://train.nzoi.org.nz/*"],
+      "js": ["libs/jquery.min.js", "content/content.js", "content/dashboard.js"],
+      "css": ["styles/base.css"],
+      "run_at": "document_end",
+      "all_frames": false
+    }
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      { "id": "headers", "enabled": true, "path": "rules/headers.json" }
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "libs/java-lint.html",
+        "libs/java-lint-runner.js",
+        "libs/tools.jar.b64",
+        "libs/pyodide/*",
+        "libs/monaco/editor/editor.main.css",
+        "libs/monaco/editor/editor.main.nls.js",
+        "libs/monaco/base/browser/ui/codicons/codicon/codicon.ttf",
+        "libs/monaco/base/common/worker/simpleWorker.nls.js",
+        "libs/monaco/basic-languages/python/python.js",
+        "libs/monaco/basic-languages/java/java.js",
+        "libs/monaco/vs/base/common/platform.nls.js",
+        "libs/monaco/vs/base/common/worker/simpleWorker.nls.js",
+        "libs/monaco/vs/editor/common/languages.nls.js",
+        "libs/cheerpj/*"
+      ],
+      "matches": ["https://train.nzoi.org.nz/*"]
+    }
+  ],
+  "icons": {
+    "16":  "icons/icon16.png",
+    "48":  "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16":  "icons/icon16.png",
+      "48":  "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "NZOI Enhanced"
+  }
+}
+

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NZOI Enhanced</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:400px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3;font-size:13px}
+.header{background:#161b22;border-bottom:1px solid #30363d;padding:12px 16px;display:flex;align-items:center;gap:10px}
+.logo{
+  width:30px;aspect-ratio:1/1;border-radius:7px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;background:transparent;border:0;
+}
+.logo img{width:100%;height:100%;object-fit:contain;display:block}
+.title{font-size:14px;font-weight:700}.subtitle{font-size:10px;color:#8b949e;margin-top:1px}
+.section{padding:12px 16px;border-bottom:1px solid #21262d}
+.shead{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#8b949e;margin-bottom:10px}
+.field{margin-bottom:8px}
+.field label{display:block;font-size:11px;color:#8b949e;margin-bottom:3px}
+.field select{width:100%;padding:6px 9px;background:#0d1117;border:1px solid #30363d;border-radius:5px;color:#e6edf3;font-size:12px}
+.field select:focus{outline:none;border-color:#58a6ff}
+.field select option{background:#0d1117}
+input[type=text],input[type=password]{width:100%;padding:6px 9px;background:#0d1117;border:1px solid #30363d;border-radius:5px;color:#e6edf3;font-size:12px;transition:border-color .15s}
+input:focus{outline:none;border-color:#58a6ff;box-shadow:0 0 0 2px rgba(88,166,255,.1)}
+input::placeholder{color:#484f58}
+textarea{width:100%;padding:8px 9px;background:#0d1117;border:1px solid #30363d;border-radius:5px;color:#e6edf3;font-size:11px;font-family:'SF Mono',Consolas,monospace;line-height:1.5;resize:vertical;min-height:110px;transition:border-color .15s}
+textarea:focus{outline:none;border-color:#58a6ff;box-shadow:0 0 0 2px rgba(88,166,255,.1)}
+textarea::placeholder{color:#484f58}
+.hint{font-size:10px;color:#484f58;margin-top:4px;line-height:1.5}
+.hint code{background:#161b22;border:1px solid #21262d;border-radius:3px;padding:0 4px;color:#8b949e;font-family:monospace}
+.hint a{color:#58a6ff;text-decoration:none}
+.hint a:hover{text-decoration:underline}
+.row{display:flex;gap:6px}.row .field{flex:1}
+.btn{padding:7px 12px;border:none;border-radius:5px;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s}
+.btn-primary{background:#238636;color:#fff;width:100%}.btn-primary:hover{background:#2ea043}
+.btn-sm{padding:4px 9px;font-size:11px;font-weight:600;border:1px solid #30363d;border-radius:4px;background:transparent;color:#8b949e;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-sm:hover{background:#21262d;color:#e6edf3}
+.btn-danger{background:transparent;color:#f85149;border:1px solid rgba(248,81,73,.3);width:100%;margin-top:5px;padding:6px}
+.btn-danger:hover{background:rgba(248,81,73,.08)}
+.status{font-size:11px;padding:5px 9px;border-radius:5px;margin-top:6px;display:none}
+.status.ok{background:rgba(46,204,113,.12);color:#3fb950;display:block}
+.status.err{background:rgba(248,81,73,.12);color:#f85149;display:block}
+.status.info{background:rgba(88,166,255,.12);color:#58a6ff;display:block}
+.save-row{display:flex;gap:6px;margin-top:8px}
+.save-row .btn-primary{flex:1}
+
+/* Key list */
+.key-list{display:flex;flex-direction:column;gap:4px;margin-bottom:5px}
+.key-row{display:flex;gap:4px;align-items:center}
+.key-row input{flex:1;font-size:12px}
+.key-row .eye{background:none;border:1px solid #30363d;border-radius:4px;color:#484f58;cursor:pointer;font-size:10px;padding:3px 7px;transition:color .15s;white-space:nowrap;flex-shrink:0}
+.key-row .eye:hover{color:#8b949e;background:#161b22}
+.key-row .rem{background:none;border:1px solid #30363d;border-radius:4px;color:#484f58;cursor:pointer;font-size:12px;padding:3px 8px;line-height:1;transition:all .15s;flex-shrink:0}
+.key-row .rem:hover{border-color:#f85149;color:#f85149}
+.add-key{font-size:11px;color:#58a6ff;background:none;border:1px dashed #30363d;border-radius:4px;padding:4px 10px;cursor:pointer;width:100%;transition:all .15s}
+.add-key:hover{background:#161b22;border-color:#58a6ff}
+.provider-box{background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:10px;margin-bottom:8px}
+.provider-box:last-child{margin-bottom:0}
+.provider-title{font-size:11px;font-weight:700;color:#8b949e;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.provider-title a{color:#58a6ff;font-weight:400;font-size:10px;text-decoration:none}
+.provider-title a:hover{text-decoration:underline}
+
+/* Gist picker */
+#gist-picker{margin-top:8px;display:none}
+#gist-list{width:100%;padding:6px 9px;background:#0d1117;border:1px solid #30363d;border-radius:5px;color:#e6edf3;font-size:11px;margin-bottom:5px;max-height:160px}
+#gist-list option{padding:3px}
+
+.kbs{display:flex;flex-direction:column;gap:4px}
+.kb{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#8b949e}
+.kb kbd{background:#21262d;border:1px solid #30363d;border-radius:3px;padding:1px 5px;font-size:10px;font-family:monospace;color:#e6edf3}
+.footer{padding:8px 16px;display:flex;justify-content:space-between;align-items:center;color:#484f58;font-size:10px}
+.footer a{color:#58a6ff;text-decoration:none}
+.chip{background:#21262d;border:1px solid #30363d;border-radius:8px;padding:1px 7px;font-size:9px;color:#8b949e}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo"><img src="icons/icon48.png" alt="NZOI Enhanced" width="48" height="48"></div>
+  <div>
+    <div class="title">NZOI Enhanced</div>
+    <div class="subtitle">v10.0 Chrome Extension</div>
+  </div>
+</div>
+
+<!-- Gist -->
+<div class="section">
+  <div class="shead">GitHub Gist Storage</div>
+  <div class="field">
+    <label>Personal Access Token <span style="color:#484f58">(needs gist scope)</span></label>
+    <div style="display:flex;gap:5px">
+      <input type="password" id="github-token" placeholder="ghp_xxxxxxxxxxxxxxxx" style="flex:1">
+      <button class="eye btn-sm" id="toggle-token">show</button>
+    </div>
+  </div>
+  <div class="field">
+    <label>Gist ID <span style="color:#484f58">paste your existing Gist ID to link it, or leave blank to create new</span></label>
+    <div style="display:flex;gap:5px">
+      <input type="text" id="gist-id" placeholder="a1b2c3d4e5f6" style="flex:1;font-family:monospace">
+      <button class="btn-sm" id="browse-gists">Browse</button>
+    </div>
+  </div>
+  <div id="gist-picker">
+    <select id="gist-list" size="5"></select>
+    <button class="btn-sm" id="use-gist" style="width:100%;justify-content:center">Use Selected Gist</button>
+  </div>
+  <div class="save-row">
+    <button class="btn btn-primary" id="save-settings">Save All Settings</button>
+    <button class="btn-sm" id="test-gist">Test</button>
+  </div>
+  <div class="status" id="gist-status"></div>
+</div>
+
+<!-- AI -->
+<div class="section">
+  <div class="shead">AI Classification</div>
+
+  <div class="provider-box">
+    <div class="provider-title">
+      Mistral Tier 1
+      <a href="https://console.mistral.ai/api-keys" target="_blank">Get key</a>
+    </div>
+    <div class="field">
+      <label>Model</label>
+      <input type="text" id="mistral-model" placeholder="mistral-medium-3-5">
+    </div>
+    <div class="field">
+      <label>Fallback Model</label>
+      <input type="text" id="mistral-fallback-model" placeholder="codestral-2508">
+    </div>
+    <div class="field">
+      <label>API Keys</label>
+      <div class="key-list" id="mistral-keys"></div>
+      <button class="add-key" id="add-mistral-key">+ Add Mistral Key</button>
+      <div class="hint">Every problem goes through Mistral first. Client throttling uses 3 rps and 1.5M tpm.</div>
+    </div>
+  </div>
+
+  <div class="provider-box">
+    <div class="provider-title">
+      Google Gemini Tier 2
+      <a href="https://aistudio.google.com/app/apikey" target="_blank">Get key</a>
+    </div>
+    <div class="field">
+      <label>Model</label>
+      <input type="text" id="google-model" placeholder="gemini-3.5-flash">
+    </div>
+    <div class="field">
+      <label>Fallback Model</label>
+      <input type="text" id="google-fallback-model" placeholder="gemini-3.1-pro-preview">
+      <div class="hint">Used only when Tier 1 is hard, risky, malformed, or low confidence. Thinking stays hidden from the UI.</div>
+    </div>
+    <div class="field">
+      <label>API Keys</label>
+      <div class="key-list" id="google-keys"></div>
+      <button class="add-key" id="add-google-key">+ Add Google Key</button>
+    </div>
+  </div>
+
+  <div class="status" id="ai-status"></div>
+</div>
+
+<!-- Editor -->
+<div class="section">
+  <div class="shead">Editor</div>
+  <div class="row">
+    <div class="field">
+      <label>Default Language</label>
+      <select id="default-lang">
+        <option value="cpp">C++ 17</option>
+        <option value="python">Python 3</option>
+        <option value="java">Java</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Auto-save Delay</label>
+      <select id="autosave-delay">
+        <option value="1500">1.5 s</option>
+        <option value="2500" selected>2.5 s</option>
+        <option value="5000">5 s</option>
+        <option value="10000">10 s</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- Shortcuts -->
+<div class="section">
+  <div class="shead">Shortcuts</div>
+  <div class="kbs">
+    <div class="kb"><span>Save to Gist</span><kbd>Ctrl+S</kbd></div>
+    <div class="kb"><span>Run tests</span><kbd>Alt+R</kbd></div>
+    <div class="kb"><span>Submit</span><kbd>Alt+S</kbd></div>
+  </div>
+</div>
+
+<!-- Data -->
+<div class="section" style="border-bottom:none">
+  <div class="shead">Data Management</div>
+
+  <div class="field">
+    <label>Mistral Tier 1 Prompt <span style="color:#484f58">first-pass classifier</span></label>
+    <textarea id="mistral-tier1-prompt-template" spellcheck="false" rows="8" placeholder="Loading"></textarea>
+    <div class="hint">Must include <code>{{TEXT}}</code>, <code>{{TAGS}}</code>, and <code>{{PREVIOUS}}</code>. Optional: <code>{{TITLE}}</code>, <code>{{URL}}</code>.</div>
+    <div class="save-row">
+      <button class="btn btn-primary" id="save-mistral-tier1-prompt">Save Tier 1 Prompt</button>
+      <button class="btn-sm" id="reset-mistral-tier1-prompt">Reset</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Google Gemini Tier 2 Prompt <span style="color:#484f58">escalation reviewer</span></label>
+    <textarea id="google-tier2-prompt-template" spellcheck="false" rows="8" placeholder="Loading"></textarea>
+    <div class="hint">Must include <code>{{TEXT}}</code>, <code>{{TAGS}}</code>, and <code>{{TIER1_RESULT}}</code>. Optional: <code>{{ESCALATION_REASON}}</code>, <code>{{TITLE}}</code>, <code>{{URL}}</code>.</div>
+    <div class="save-row">
+      <button class="btn btn-primary" id="save-google-tier2-prompt">Save Tier 2 Prompt</button>
+      <button class="btn-sm" id="reset-google-tier2-prompt">Reset</button>
+    </div>
+    <div class="status" id="prompt-status"></div>
+  </div>
+
+  <button class="btn btn-danger" id="clear-classifications">Restart Classification (Clear AI Tags)</button>
+  <button class="btn btn-danger" id="clear-gist-cache">Clear Gist File Cache</button>
+  <div class="status" id="data-status"></div>
+</div>
+
+<div class="footer">
+  <span>NZOI Enhanced v10.0</span>
+  <a href="https://train.nzoi.org.nz" target="_blank">Open Training</a>
+  <a href="https://github.com/KalonixReal/nzoi-enhanced/blob/main/PRIVACY_POLICY.md" target="_blank" rel="noopener">Privacy Policy</a>
+  <span class="chip">MV3</span>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
